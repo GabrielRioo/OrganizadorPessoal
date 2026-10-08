@@ -14,7 +14,7 @@ const coverUrl = z
 
 export const loginSchema = z
   .object({
-    password: z.string().min(1).max(200),
+    password: z.string().trim().min(1).max(200),
   })
   .strict();
 

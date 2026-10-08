@@ -1,3 +1,6 @@
-import app from "../server/src/app.js";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
-export default app;
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  const { default: app } = await import("../server/src/app.js");
+  app(req, res);
+}
