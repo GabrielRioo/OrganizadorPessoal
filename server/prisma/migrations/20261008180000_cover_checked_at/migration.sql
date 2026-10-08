@@ -1,0 +1,2 @@
+ALTER TABLE "Game" ADD COLUMN "coverCheckedAt" TIMESTAMP(3);
+ALTER TABLE "Media" ADD COLUMN "coverCheckedAt" TIMESTAMP(3);

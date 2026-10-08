@@ -1,0 +1,193 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GameStatus {
+  WISHLIST
+  BACKLOG
+  PLAYING
+  PAUSED
+  PLAYED
+  ABANDONED
+  ONLINE
+  CASUAL
+  EVENTUAL
+}
+
+model Game {
+  id             String     @id @default(cuid())
+  title          String
+  platform       String
+  status         GameStatus @default(BACKLOG)
+  queuePosition  Int?
+  notes          String?
+  coverUrl       String?
+  playtimeHours  Int?
+  coverCheckedAt DateTime?
+  coverSource    String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+enum MediaKind {
+  MOVIE
+  SERIES
+  ANIME
+}
+
+enum MediaStatus {
+  WATCHLIST
+  WATCHING
+  PAUSED
+  WAITING
+  WATCHED
+}
+
+enum MediaRating {
+  GOOD
+  OKAY
+  BAD
+}
+
+model Media {
+  id             String       @id @default(cuid())
+  title          String
+  kind           MediaKind
+  status         MediaStatus  @default(WATCHLIST)
+  currentSeason  Int?
+  currentEpisode Int?
+  rating         MediaRating?
+  genre          String?
+  watchedOn      String?
+  notes          String?
+  coverUrl       String?
+  year           Int?
+  coverCheckedAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum TravelStatus {
+  VISITED
+  PLANNING
+}
+
+model Travel {
+  id        String       @id @default(cuid())
+  place     String
+  country   String?
+  status    TravelStatus @default(PLANNING)
+  visitedAt DateTime?    @db.Date
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  PAUSED
+  DONE
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  status      ProjectStatus @default(PLANNED)
+  description String?
+  deadline    DateTime?     @db.Date
+  published   Boolean       @default(false)
+  monetize    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum TaskKind {
+  TASK
+  IDEA
+}
+
+enum TaskStatus {
+  TODO
+  DOING
+  DONE
+}
+
+model Task {
+  id        String     @id @default(cuid())
+  title     String
+  kind      TaskKind   @default(TASK)
+  status    TaskStatus @default(TODO)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Countdown {
+  id         String   @id @default(cuid())
+  title      String
+  targetDate DateTime @db.Date
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PomodoroSession {
+  id          String    @id @default(cuid())
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationMin Int
+  label       String?
+  createdAt   DateTime  @default(now())
+}
+
+enum BuyStatus {
+  WANT
+  RESEARCHING
+  WAITING_DEAL
+  BOUGHT
+  DROPPED
+}
+
+enum BuyPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum BuyCurrency {
+  BRL
+  USD
+  EUR
+}
+
+model BuyItem {
+  id           String      @id @default(cuid())
+  name         String
+  description  String?
+  category     String?
+  currentPrice Decimal?    @db.Decimal(12, 2)
+  targetPrice  Decimal?    @db.Decimal(12, 2)
+  currency     BuyCurrency @default(BRL)
+  quantity     Int         @default(1)
+  priority     BuyPriority @default(MEDIUM)
+  status       BuyStatus   @default(WANT)
+  links        Json        @default("[]")
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model AccessPassword {
+  id           String    @id @default(cuid())
+  label        String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+}

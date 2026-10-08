@@ -1,0 +1,5 @@
+ALTER TABLE "Game" ADD COLUMN "coverUrl" TEXT;
+ALTER TABLE "Game" ADD COLUMN "playtimeHours" INTEGER;
+
+ALTER TABLE "Media" ADD COLUMN "coverUrl" TEXT;
+ALTER TABLE "Media" ADD COLUMN "year" INTEGER;

@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: organizer
+      POSTGRES_PASSWORD: organizer
+      POSTGRES_DB: organizer
+    ports:
+      - "5433:5432"
+    volumes:
+      - organizer_pg:/var/lib/postgresql/data
+
+volumes:
+  organizer_pg:
