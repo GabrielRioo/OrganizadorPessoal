@@ -21,7 +21,7 @@ export function LoginPage() {
     void authService
       .me()
       .then((response) => {
-        if (response.authenticated && !response.loginRequired) {
+        if (response.authenticated) {
           navigate(from, { replace: true });
         }
       })

@@ -1,22 +1,13 @@
 import { Prisma } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import { hasOwnerSession, hasValidSession } from "../lib/session.js";
-import { isAccessGateEnabled } from "../services/accessGate.js";
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  if (hasValidSession(req)) {
-    next();
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  if (!hasValidSession(req)) {
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  try {
-    if (!(await isAccessGateEnabled())) {
-      next();
-      return;
-    }
-    res.status(401).json({ error: "Unauthorized" });
-  } catch (error) {
-    next(error);
-  }
+  next();
 }
 
 export function requireOwner(req: Request, res: Response, next: NextFunction): void {

@@ -4,13 +4,11 @@ import { parseBody } from "../lib/http.js";
 import { verifyPassword } from "../lib/passwordHash.js";
 import {
   clearSessionCookie,
-  hasValidSession,
   passwordsMatch,
   sessionRole,
   setSessionCookie,
 } from "../lib/session.js";
 import { prisma } from "../lib/prisma.js";
-import { isAccessGateEnabled } from "../services/accessGate.js";
 import { loginSchema } from "../validation/schemas.js";
 
 export const authRouter = Router();
@@ -51,20 +49,15 @@ authRouter.post("/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
-authRouter.get("/me", async (req, res, next) => {
-  try {
-    const loginRequired = await isAccessGateEnabled();
-    const role = sessionRole(req);
-    if (role || !loginRequired) {
-      res.json({
-        authenticated: true,
-        loginRequired,
-        role: role ?? "open",
-      });
-      return;
-    }
+authRouter.get("/me", (req, res) => {
+  const role = sessionRole(req);
+  if (!role) {
     res.status(401).json({ error: "Unauthorized" });
-  } catch (error) {
-    next(error);
+    return;
   }
+  res.json({
+    authenticated: true,
+    loginRequired: true,
+    role,
+  });
 });

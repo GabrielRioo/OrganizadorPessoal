@@ -106,7 +106,7 @@ export function AccessPage() {
     <>
       <PageHeader
         title="Senhas de acesso"
-        subtitle="Crie senhas para quem for usar o organizador. Enquanto não houver nenhuma, o app abre sem login."
+        subtitle="Crie senhas extras para outras pessoas. Sem uma sessão válida, o organizador pede senha."
         actionLabel="Nova senha"
         onAction={() => {
           setLabel("");

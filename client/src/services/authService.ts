@@ -1,6 +1,6 @@
 import { api } from "./api";
 
-export type AuthRole = "owner" | "guest" | "open";
+export type AuthRole = "owner" | "guest";
 
 export type AuthMe = {
   authenticated: boolean;
