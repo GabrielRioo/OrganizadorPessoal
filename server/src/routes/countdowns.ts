@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { parseBody } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { countdownCreateSchema, countdownUpdateSchema } from "../validation/schemas.js";
 
 export const countdownsRouter = Router();
 
-countdownsRouter.get("/", async (_req, res, next) => {
+countdownsRouter.get("/", async (req, res, next) => {
   try {
     const items = await prisma.countdown.findMany({
+      where: ownedBy(req),
       orderBy: { targetDate: "asc" },
     });
     res.json(items);
@@ -24,6 +26,7 @@ countdownsRouter.post("/", async (req, res, next) => {
     }
     const item = await prisma.countdown.create({
       data: {
+        ...ownedBy(req),
         title: body.title,
         targetDate: new Date(body.targetDate),
         notes: body.notes,
@@ -41,8 +44,14 @@ countdownsRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.countdown.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.countdown.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...body,
         targetDate: body.targetDate ? new Date(body.targetDate) : undefined,
@@ -56,7 +65,13 @@ countdownsRouter.patch("/:id", async (req, res, next) => {
 
 countdownsRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.countdown.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.countdown.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.countdown.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

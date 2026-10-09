@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Prisma, ProjectStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryBool, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { projectCreateSchema, projectUpdateSchema } from "../validation/schemas.js";
 
 const statuses = new Set<ProjectStatus>(["PLANNED", "IN_PROGRESS", "PAUSED", "DONE"]);
@@ -19,6 +20,7 @@ projectsRouter.get("/", async (req, res, next) => {
     const monetize = queryBool(req, "monetize");
 
     const where: Prisma.ProjectWhereInput = {
+      ...ownedBy(req),
       ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
       ...(status ? { status } : {}),
       ...(published !== undefined ? { published } : {}),
@@ -44,6 +46,7 @@ projectsRouter.post("/", async (req, res, next) => {
     const item = await prisma.project.create({
       data: {
         ...body,
+        ...ownedBy(req),
         deadline: body.deadline ? new Date(body.deadline) : null,
       },
     });
@@ -59,8 +62,14 @@ projectsRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.project.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.project.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...body,
         deadline:
@@ -79,7 +88,13 @@ projectsRouter.patch("/:id", async (req, res, next) => {
 
 projectsRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.project.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.project.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.project.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

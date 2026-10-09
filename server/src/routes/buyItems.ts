@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { BuyPriority, BuyStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { buyItemCreateSchema, buyItemUpdateSchema } from "../validation/schemas.js";
 
 const buyStatuses = new Set<BuyStatus>(["WANT", "RESEARCHING", "WAITING_DEAL", "BOUGHT", "DROPPED"]);
@@ -76,6 +77,7 @@ buyItemsRouter.get("/", async (req, res, next) => {
         : undefined;
 
     const where: Prisma.BuyItemWhereInput = {
+      ...ownedBy(req),
       ...(q
         ? {
             OR: [
@@ -133,6 +135,7 @@ buyItemsRouter.post("/", async (req, res, next) => {
     const item = await prisma.buyItem.create({
       data: {
         ...body,
+        ...ownedBy(req),
         links: body.links ?? [],
       },
     });
@@ -148,8 +151,14 @@ buyItemsRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.buyItem.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.buyItem.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...body,
         ...(body.links ? { links: body.links } : {}),
@@ -163,7 +172,13 @@ buyItemsRouter.patch("/:id", async (req, res, next) => {
 
 buyItemsRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.buyItem.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.buyItem.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.buyItem.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Prisma, TravelStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { travelCreateSchema, travelUpdateSchema } from "../validation/schemas.js";
 
 const statuses = new Set<TravelStatus>(["VISITED", "PLANNING"]);
@@ -17,6 +18,7 @@ travelsRouter.get("/", async (req, res, next) => {
       : undefined;
 
     const where: Prisma.TravelWhereInput = {
+      ...ownedBy(req),
       ...(q
         ? {
             OR: [
@@ -47,6 +49,7 @@ travelsRouter.post("/", async (req, res, next) => {
     const item = await prisma.travel.create({
       data: {
         ...body,
+        ...ownedBy(req),
         visitedAt: body.visitedAt ? new Date(body.visitedAt) : null,
       },
     });
@@ -62,8 +65,14 @@ travelsRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.travel.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.travel.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...body,
         visitedAt:
@@ -82,7 +91,13 @@ travelsRouter.patch("/:id", async (req, res, next) => {
 
 travelsRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.travel.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.travel.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.travel.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

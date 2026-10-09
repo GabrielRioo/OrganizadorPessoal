@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { parseBody } from "../lib/http.js";
 import { generateAccessPassword, hashPassword } from "../lib/passwordHash.js";
+import { createGuestUser } from "../services/users.js";
 import { accessPasswordCreateSchema } from "../validation/schemas.js";
 
 const publicFields = {
@@ -33,9 +34,11 @@ accessPasswordsRouter.post("/", async (req, res, next) => {
       return;
     }
     const password = body.password?.trim() || generateAccessPassword();
+    const guest = await createGuestUser(body.label);
     const created = await prisma.accessPassword.create({
       data: {
         label: body.label,
+        userId: guest.id,
         passwordHash: await hashPassword(password),
       },
       select: publicFields,

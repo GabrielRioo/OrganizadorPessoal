@@ -106,7 +106,7 @@ export function AccessPage() {
     <>
       <PageHeader
         title="Senhas de acesso"
-        subtitle="Crie senhas extras para outras pessoas. Sem uma sessão válida, o organizador pede senha."
+        subtitle="Cada senha cria um organizador separado. Quem entrar com ela só vê o que cadastrar."
         actionLabel="Nova senha"
         onAction={() => {
           setLabel("");
@@ -125,7 +125,7 @@ export function AccessPage() {
         loading={loading}
         error={error}
         empty={items.length === 0}
-        emptyTitle="Nenhuma senha ainda. O organizador fica aberto até você criar a primeira."
+        emptyTitle="Nenhuma senha extra. Só a sua conta de organizador existe por enquanto."
         emptyAction="Nova senha"
         onRetry={() => void load()}
         onEmptyAction={() => setOpen(true)}

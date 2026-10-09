@@ -1,17 +1,19 @@
 import { Prisma } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
-import { hasOwnerSession, hasValidSession } from "../lib/session.js";
+import { readSession } from "../lib/session.js";
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  if (!hasValidSession(req)) {
+  const session = readSession(req);
+  if (!session) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  req.auth = session;
   next();
 }
 
 export function requireOwner(req: Request, res: Response, next: NextFunction): void {
-  if (!hasOwnerSession(req)) {
+  if (req.auth?.role !== "owner" && readSession(req)?.role !== "owner") {
     res.status(403).json({ error: "Forbidden" });
     return;
   }

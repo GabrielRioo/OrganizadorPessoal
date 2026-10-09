@@ -8,6 +8,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  OWNER
+  GUEST
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      UserRole
+  label     String?
+  createdAt DateTime @default(now())
+
+  accessPassword AccessPassword?
+  games          Game[]
+  media          Media[]
+  travels        Travel[]
+  projects       Project[]
+  tasks          Task[]
+  countdowns     Countdown[]
+  pomodoros      PomodoroSession[]
+  buyItems       BuyItem[]
+
+  @@index([role])
+}
+
 enum GameStatus {
   WISHLIST
   BACKLOG
@@ -22,6 +46,8 @@ enum GameStatus {
 
 model Game {
   id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   platform       String
   status         GameStatus @default(BACKLOG)
@@ -33,6 +59,8 @@ model Game {
   coverSource    String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+
+  @@index([userId])
 }
 
 enum MediaKind {
@@ -57,6 +85,8 @@ enum MediaRating {
 
 model Media {
   id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   kind           MediaKind
   status         MediaStatus  @default(WATCHLIST)
@@ -71,6 +101,8 @@ model Media {
   coverCheckedAt DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
 }
 
 enum TravelStatus {
@@ -80,6 +112,8 @@ enum TravelStatus {
 
 model Travel {
   id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   place     String
   country   String?
   status    TravelStatus @default(PLANNING)
@@ -87,6 +121,8 @@ model Travel {
   notes     String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+
+  @@index([userId])
 }
 
 enum ProjectStatus {
@@ -98,6 +134,8 @@ enum ProjectStatus {
 
 model Project {
   id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   status      ProjectStatus @default(PLANNED)
   description String?
@@ -106,6 +144,8 @@ model Project {
   monetize    Boolean       @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
 }
 
 enum TaskKind {
@@ -121,30 +161,42 @@ enum TaskStatus {
 
 model Task {
   id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   kind      TaskKind   @default(TASK)
   status    TaskStatus @default(TODO)
   notes     String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([userId])
 }
 
 model Countdown {
   id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title      String
   targetDate DateTime @db.Date
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model PomodoroSession {
   id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   startedAt   DateTime
   endedAt     DateTime?
   durationMin Int
   label       String?
   createdAt   DateTime  @default(now())
+
+  @@index([userId])
 }
 
 enum BuyStatus {
@@ -169,6 +221,8 @@ enum BuyCurrency {
 
 model BuyItem {
   id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   description  String?
   category     String?
@@ -182,10 +236,14 @@ model BuyItem {
   notes        String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+
+  @@index([userId])
 }
 
 model AccessPassword {
   id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   label        String
   passwordHash String
   createdAt    DateTime  @default(now())

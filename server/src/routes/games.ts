@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { GameStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryBool, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { enrichGameCovers } from "../services/coverEnrichment.js";
 import { gameCreateSchema, gameUpdateSchema } from "../validation/schemas.js";
 
@@ -77,6 +78,7 @@ gamesRouter.get("/", async (req, res, next) => {
     const invert = queryBool(req, "invert") === true;
 
     const where: Prisma.GameWhereInput = {
+      ...ownedBy(req),
       ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
       ...(platform ? { platform: { equals: platform, mode: "insensitive" } } : {}),
       ...(status ? { status } : {}),
@@ -92,9 +94,10 @@ gamesRouter.get("/", async (req, res, next) => {
   }
 });
 
-gamesRouter.get("/platforms", async (_req, res, next) => {
+gamesRouter.get("/platforms", async (req, res, next) => {
   try {
     const rows = await prisma.game.findMany({
+      where: ownedBy(req),
       distinct: ["platform"],
       select: { platform: true },
       orderBy: { platform: "asc" },
@@ -111,7 +114,7 @@ gamesRouter.post("/", async (req, res, next) => {
     if (!body) {
       return;
     }
-    const created = await prisma.game.create({ data: body });
+    const created = await prisma.game.create({ data: { ...body, ...ownedBy(req) } });
     const [game] = await enrichGameCovers([created]);
     res.status(201).json(game);
   } catch (error) {
@@ -125,8 +128,14 @@ gamesRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.game.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const game = await prisma.game.update({
-      where: { id: req.params.id },
+      where: { id },
       data: body,
     });
     res.json(game);
@@ -137,7 +146,13 @@ gamesRouter.patch("/:id", async (req, res, next) => {
 
 gamesRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.game.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.game.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.game.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

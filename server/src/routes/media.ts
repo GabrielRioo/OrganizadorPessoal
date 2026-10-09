@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { MediaKind, MediaStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { enrichMediaCovers } from "../services/coverEnrichment.js";
 import { mediaCreateSchema, mediaUpdateSchema } from "../validation/schemas.js";
 
@@ -29,6 +30,7 @@ mediaRouter.get("/", async (req, res, next) => {
       : undefined;
 
     const where: Prisma.MediaWhereInput = {
+      ...ownedBy(req),
       ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
       ...(kind ? { kind } : {}),
       ...(status ? { status } : {}),
@@ -50,7 +52,7 @@ mediaRouter.post("/", async (req, res, next) => {
     if (!body) {
       return;
     }
-    const created = await prisma.media.create({ data: body });
+    const created = await prisma.media.create({ data: { ...body, ...ownedBy(req) } });
     const [item] = await enrichMediaCovers([created]);
     res.status(201).json(item);
   } catch (error) {
@@ -64,8 +66,14 @@ mediaRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.media.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.media.update({
-      where: { id: req.params.id },
+      where: { id },
       data: body,
     });
     res.json(item);
@@ -76,7 +84,13 @@ mediaRouter.patch("/:id", async (req, res, next) => {
 
 mediaRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.media.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.media.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.media.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

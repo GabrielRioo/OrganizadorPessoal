@@ -1,13 +1,15 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { parseBody } from "../lib/http.js";
+import { ownedBy } from "../lib/owned.js";
 import { pomodoroCreateSchema } from "../validation/schemas.js";
 
 export const pomodoroRouter = Router();
 
-pomodoroRouter.get("/", async (_req, res, next) => {
+pomodoroRouter.get("/", async (req, res, next) => {
   try {
     const items = await prisma.pomodoroSession.findMany({
+      where: ownedBy(req),
       orderBy: { startedAt: "desc" },
       take: 50,
     });
@@ -25,6 +27,7 @@ pomodoroRouter.post("/", async (req, res, next) => {
     }
     const item = await prisma.pomodoroSession.create({
       data: {
+        ...ownedBy(req),
         startedAt: new Date(body.startedAt),
         endedAt: body.endedAt ? new Date(body.endedAt) : null,
         durationMin: body.durationMin,

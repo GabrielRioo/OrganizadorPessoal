@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Prisma, TaskKind, TaskStatus } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
+import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { taskCreateSchema, taskUpdateSchema } from "../validation/schemas.js";
 
 const kinds = new Set<TaskKind>(["TASK", "IDEA"]);
@@ -22,6 +23,7 @@ tasksRouter.get("/", async (req, res, next) => {
       : undefined;
 
     const where: Prisma.TaskWhereInput = {
+      ...ownedBy(req),
       ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
       ...(kind ? { kind } : {}),
       ...(status ? { status } : {}),
@@ -43,7 +45,7 @@ tasksRouter.post("/", async (req, res, next) => {
     if (!body) {
       return;
     }
-    const item = await prisma.task.create({ data: body });
+    const item = await prisma.task.create({ data: { ...body, ...ownedBy(req) } });
     res.status(201).json(item);
   } catch (error) {
     next(error);
@@ -56,8 +58,14 @@ tasksRouter.patch("/:id", async (req, res, next) => {
     if (!body) {
       return;
     }
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.task.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
     const item = await prisma.task.update({
-      where: { id: req.params.id },
+      where: { id },
       data: body,
     });
     res.json(item);
@@ -68,7 +76,13 @@ tasksRouter.patch("/:id", async (req, res, next) => {
 
 tasksRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.task.delete({ where: { id: req.params.id } });
+    const id = await requireOwnedId(req, res, (rowId, userId) =>
+      prisma.task.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+    );
+    if (!id) {
+      return;
+    }
+    await prisma.task.delete({ where: { id } });
     res.status(204).end();
   } catch (error) {
     next(error);

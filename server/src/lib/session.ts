@@ -7,6 +7,11 @@ const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type SessionRole = "owner" | "guest";
 
+export type SessionPayload = {
+  userId: string;
+  role: SessionRole;
+};
+
 const ROLES = new Set<SessionRole>(["owner", "guest"]);
 
 function cookieOptions(): CookieOptions {
@@ -25,38 +30,36 @@ export function passwordsMatch(input: string, expected: string): boolean {
   return crypto.timingSafeEqual(digestA, digestB);
 }
 
-function signRole(role: SessionRole): string {
-  const signature = crypto.createHmac("sha256", env.sessionSecret).update(role).digest("hex");
-  return `${role}.${signature}`;
+function signPayload(payload: SessionPayload): string {
+  const body = `v1.${payload.userId}.${payload.role}`;
+  const signature = crypto.createHmac("sha256", env.sessionSecret).update(body).digest("hex");
+  return `${body}.${signature}`;
 }
 
-function parseRole(value: string | undefined): SessionRole | null {
+function parseSession(value: string | undefined): SessionPayload | null {
   if (!value) {
     return null;
   }
-  if (value === "authenticated") {
-    return "owner";
-  }
-  const separator = value.indexOf(".");
-  if (separator <= 0) {
+  const parts = value.split(".");
+  if (parts.length !== 4 || parts[0] !== "v1") {
     return null;
   }
-  const role = value.slice(0, separator);
-  const signature = value.slice(separator + 1);
-  if (!ROLES.has(role as SessionRole) || !signature) {
+  const [, userId, role, signature] = parts;
+  if (!userId || !ROLES.has(role as SessionRole) || !signature) {
     return null;
   }
-  const expected = crypto.createHmac("sha256", env.sessionSecret).update(role).digest("hex");
+  const body = `v1.${userId}.${role}`;
+  const expected = crypto.createHmac("sha256", env.sessionSecret).update(body).digest("hex");
   const digestA = Buffer.from(signature, "utf8");
   const digestB = Buffer.from(expected, "utf8");
   if (digestA.length !== digestB.length || !crypto.timingSafeEqual(digestA, digestB)) {
     return null;
   }
-  return role as SessionRole;
+  return { userId, role: role as SessionRole };
 }
 
-export function setSessionCookie(res: Response, role: SessionRole): void {
-  res.cookie(SESSION_COOKIE, signRole(role), cookieOptions());
+export function setSessionCookie(res: Response, payload: SessionPayload): void {
+  res.cookie(SESSION_COOKIE, signPayload(payload), cookieOptions());
 }
 
 export function clearSessionCookie(res: Response): void {
@@ -69,22 +72,30 @@ export function clearSessionCookie(res: Response): void {
 }
 
 function sessionValue(req: Request): string | undefined {
-  const signed = req.signedCookies?.[SESSION_COOKIE];
-  if (typeof signed === "string") {
-    return signed;
-  }
   const raw = req.cookies?.[SESSION_COOKIE];
   return typeof raw === "string" ? raw : undefined;
 }
 
+export function readSession(req: Request): SessionPayload | null {
+  return parseSession(sessionValue(req));
+}
+
 export function hasOwnerSession(req: Request): boolean {
-  return parseRole(sessionValue(req)) === "owner";
+  return readSession(req)?.role === "owner";
 }
 
 export function hasValidSession(req: Request): boolean {
-  return parseRole(sessionValue(req)) !== null;
+  return readSession(req) !== null;
 }
 
 export function sessionRole(req: Request): SessionRole | null {
-  return parseRole(sessionValue(req));
+  return readSession(req)?.role ?? null;
+}
+
+export function userIdOf(req: Request): string {
+  const userId = req.auth?.userId ?? readSession(req)?.userId;
+  if (!userId) {
+    throw new Error("Authenticated request is missing user id");
+  }
+  return userId;
 }

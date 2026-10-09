@@ -5,10 +5,11 @@ import { verifyPassword } from "../lib/passwordHash.js";
 import {
   clearSessionCookie,
   passwordsMatch,
-  sessionRole,
+  readSession,
   setSessionCookie,
 } from "../lib/session.js";
 import { prisma } from "../lib/prisma.js";
+import { ensureOwnerUser } from "../services/users.js";
 import { loginSchema } from "../validation/schemas.js";
 
 export const authRouter = Router();
@@ -21,18 +22,19 @@ authRouter.post("/login", async (req, res, next) => {
     }
 
     if (passwordsMatch(body.password, env.appPassword)) {
-      setSessionCookie(res, "owner");
+      const owner = await ensureOwnerUser();
+      setSessionCookie(res, { userId: owner.id, role: "owner" });
       res.json({ ok: true, role: "owner" });
       return;
     }
 
     const stored = await prisma.accessPassword.findMany({
       where: { revokedAt: null },
-      select: { passwordHash: true },
+      select: { passwordHash: true, userId: true },
     });
     for (const entry of stored) {
       if (await verifyPassword(body.password, entry.passwordHash)) {
-        setSessionCookie(res, "guest");
+        setSessionCookie(res, { userId: entry.userId, role: "guest" });
         res.json({ ok: true, role: "guest" });
         return;
       }
@@ -50,14 +52,14 @@ authRouter.post("/logout", (_req, res) => {
 });
 
 authRouter.get("/me", (req, res) => {
-  const role = sessionRole(req);
-  if (!role) {
+  const session = readSession(req);
+  if (!session) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
   res.json({
     authenticated: true,
     loginRequired: true,
-    role,
+    role: session.role,
   });
 });
