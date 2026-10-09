@@ -26,7 +26,7 @@ app.use((_req, res, next) => {
   next();
 });
 app.use(express.json({ limit: "32kb" }));
-app.use(cookieParser(env.sessionSecret));
+app.use(cookieParser());
 app.use(
   cors({
     origin: isProduction ? false : env.clientOrigin,
