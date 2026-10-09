@@ -1,4 +1,4 @@
-export type GameStatus = "WISHLIST" | "BACKLOG" | "PLAYING" | "PAUSED" | "PLAYED" | "ABANDONED" | "ONLINE" | "CASUAL" | "EVENTUAL";
+export type GameStatus = "WISHLIST" | "BACKLOG" | "PLAYING" | "PAUSED" | "PLAYED" | "ABANDONED" | "SHELVED" | "ONLINE" | "CASUAL" | "EVENTUAL";
 export type MediaKind = "MOVIE" | "SERIES" | "ANIME";
 export type MediaStatus = "WATCHLIST" | "WATCHING" | "PAUSED" | "WAITING" | "WATCHED";
 export type MediaRating = "GOOD" | "OKAY" | "BAD";

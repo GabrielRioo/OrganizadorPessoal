@@ -13,6 +13,7 @@ const gameStatuses = new Set<GameStatus>([
   "PAUSED",
   "PLAYED",
   "ABANDONED",
+  "SHELVED",
   "ONLINE",
   "CASUAL",
   "EVENTUAL",

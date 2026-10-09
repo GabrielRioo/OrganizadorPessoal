@@ -5,6 +5,7 @@ export const gameStatusLabels: Record<string, string> = {
   PAUSED: "Pausado",
   PLAYED: "Jogado",
   ABANDONED: "Abandonado",
+  SHELVED: "Arquivado",
   ONLINE: "Online",
   CASUAL: "Casual",
   EVENTUAL: "Eventual",

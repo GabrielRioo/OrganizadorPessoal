@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -19,6 +20,7 @@ export function gameStatusTone(status: GameStatus): StatusTone {
   if (status === "PLAYED") return "success";
   if (status === "PAUSED") return "warning";
   if (status === "ABANDONED") return "error";
+  if (status === "SHELVED") return "default";
   return "default";
 }
 
@@ -31,6 +33,7 @@ export function gameStatusIcon(status: GameStatus): ReactNode {
   if (status === "ONLINE") return <WifiIcon />;
   if (status === "CASUAL") return <WeekendOutlinedIcon />;
   if (status === "EVENTUAL") return <EventOutlinedIcon />;
+  if (status === "SHELVED") return <ArchiveOutlinedIcon />;
   return <CancelOutlinedIcon />;
 }
 

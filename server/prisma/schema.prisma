@@ -42,6 +42,7 @@ enum GameStatus {
   ONLINE
   CASUAL
   EVENTUAL
+  SHELVED
 }
 
 model Game {

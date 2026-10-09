@@ -36,7 +36,7 @@ export const gameCreateSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
     platform: z.string().trim().min(1).max(80),
-    status: z.enum(["WISHLIST", "BACKLOG", "PLAYING", "PAUSED", "PLAYED", "ABANDONED", "ONLINE", "CASUAL", "EVENTUAL"]),
+    status: z.enum(["WISHLIST", "BACKLOG", "PLAYING", "PAUSED", "PLAYED", "ABANDONED", "SHELVED", "ONLINE", "CASUAL", "EVENTUAL"]),
     queuePosition: z.number().int().min(1).max(999).optional().nullable(),
     notes,
     coverUrl,
