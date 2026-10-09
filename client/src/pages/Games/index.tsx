@@ -1,4 +1,5 @@
 import { useCallback, useState, type FormEvent } from "react";
+import { GameCoverPreview } from "./components/GameCoverPreview";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import MenuItem from "@mui/material/MenuItem";
@@ -23,7 +24,7 @@ import { useGames } from "./hooks/useGames";
 
 type GameSuggestion = GameCatalogHit & { id: string; subtitle: string };
 
-const statuses: GameStatus[] = ["WISHLIST", "BACKLOG", "PLAYING", "CASUAL", "EVENTUAL", "PAUSED", "PLAYED", "ABANDONED", "ONLINE"];
+const statuses: GameStatus[] = ["WISHLIST", "BACKLOG", "PLAYING", "CASUAL", "EVENTUAL", "PAUSED", "PLAYED", "ABANDONED", "SHELVED", "ONLINE"];
 
 const sortOptions: Array<{ value: GameSort; label: string }> = [
   { value: "queue", label: "Fila" },
@@ -248,11 +249,18 @@ export function GamesPage() {
         saving={saving}
         onClose={() => setOpen(false)}
         onSubmit={(event) => void handleSubmit(event)}
+        aside={<GameCoverPreview title={form.title} coverUrl={form.coverUrl} />}
       >
         <CatalogSuggestField
           label="Título"
           value={form.title}
-          onInputChange={(title) => setForm((current) => ({ ...current, title }))}
+          onInputChange={(title) =>
+            setForm((current) => ({
+              ...current,
+              title,
+              coverUrl: title === current.title ? current.coverUrl : null,
+            }))
+          }
           search={searchGames}
           onSelect={(option) =>
             setForm((current) => ({

@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -13,6 +14,7 @@ type FormDialogProps = {
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
+  aside?: ReactNode;
   maxWidth?: "sm" | "md";
 };
 
@@ -23,13 +25,26 @@ export function FormDialog({
   onClose,
   onSubmit,
   children,
-  maxWidth = "sm",
+  aside,
+  maxWidth = aside ? "md" : "sm",
 }: FormDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth={maxWidth} slots={{ transition: Grow }}>
       <form onSubmit={onSubmit}>
         <DialogTitle>{title}</DialogTitle>
-        <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>{children}</DialogContent>
+        <DialogContent sx={{ pt: 1 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2.5,
+              alignItems: "start",
+              gridTemplateColumns: aside ? { xs: "1fr", sm: "minmax(132px, 168px) 1fr" } : "1fr",
+            }}
+          >
+            {aside}
+            <Box sx={{ display: "grid", gap: 2, minWidth: 0 }}>{children}</Box>
+          </Box>
+        </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} disabled={saving}>
             Cancelar
