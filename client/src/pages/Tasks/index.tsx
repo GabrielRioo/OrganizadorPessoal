@@ -1,87 +1,58 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
+import SendIcon from "@mui/icons-material/Send";
+import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
+import ViewStreamOutlinedIcon from "@mui/icons-material/ViewStreamOutlined";
+import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { FormDialog } from "../../components/FormDialog";
-import { ItemCard } from "../../components/ItemCard";
-import { ListLayoutToggle } from "../../components/ListLayoutToggle";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Typography from "@mui/material/Typography";
+import { FilterToolbar } from "../../components/FilterToolbar";
 import { PageHeader } from "../../components/PageHeader";
 import { PageState } from "../../components/PageState";
-import { StaggeredList } from "../../components/StaggeredList";
-import { StatusChip } from "../../components/StatusChip";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useListLayout } from "../../hooks/useListLayout";
 import type { Task, TaskKind, TaskStatus } from "../../types/models";
 import { taskKindLabels, taskStatusLabels } from "../../utils/labels";
-import { taskStatusTone } from "../../utils/statusVisuals";
 import { useTasks } from "./hooks/useTasks";
 
 const kinds: TaskKind[] = ["TASK", "IDEA"];
-const statuses: TaskStatus[] = ["TODO", "DOING", "DONE"];
-const emptyForm = {
-  title: "",
-  kind: "TASK" as TaskKind,
-  status: "TODO" as TaskStatus,
-  notes: "",
-};
+const columns: TaskStatus[] = ["TODO", "DOING", "DONE"];
 
 export function TasksPage() {
-  const {
-    items,
-    loading,
-    error,
-    q,
-    kind,
-    status,
-    setQuery,
-    setKind,
-    setStatus,
-    load,
-    create,
-    update,
-    remove,
-  } = useTasks();
-  const { layout, setLayout } = useListLayout("tasks");
-  const [open, setOpen] = useState(false);
+  const { items, loading, error, q, kind, setQuery, setKind, load, create, update, remove } = useTasks();
+  const { layout, setLayout } = useListLayout("tasks-kanban", "cards");
+  const orientation = layout === "cards" ? "horizontal" : "vertical";
+  const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState<Task | null>(null);
-  const [form, setForm] = useState(emptyForm);
 
-  function openCreate() {
-    setEditing(null);
-    setForm(emptyForm);
-    setOpen(true);
-  }
-
-  function openEdit(item: Task) {
-    setEditing(item);
-    setForm({
-      title: item.title,
-      kind: item.kind,
-      status: item.status,
-      notes: item.notes ?? "",
-    });
-    setOpen(true);
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function submitDraft() {
+    const title = draft.trim();
+    if (!title || saving) {
+      return;
+    }
     setSaving(true);
-    const payload = {
-      title: form.title,
-      kind: form.kind,
-      status: form.status,
-      notes: form.notes || null,
-    };
     try {
-      if (editing) {
-        await update(editing.id, payload);
-      } else {
-        await create(payload);
-      }
-      setOpen(false);
+      await create({ title, kind: "TASK", status: "TODO" });
+      setDraft("");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    void submitDraft();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void submitDraft();
     }
   }
 
@@ -89,114 +60,152 @@ export function TasksPage() {
     <>
       <PageHeader
         title="Tarefas e ideias"
-        subtitle="Lista do que você quer fazer e do que está fazendo."
-        actionLabel="Adicionar"
-        onAction={openCreate}
-        extra={<ListLayoutToggle value={layout} onChange={setLayout} />}
+        subtitle="Escreva e envie. Depois arraste entre as colunas ou mude a tag no card."
+        extra={
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={orientation}
+            onChange={(_event, next: "horizontal" | "vertical" | null) => {
+              if (next === "horizontal") setLayout("cards");
+              if (next === "vertical") setLayout("stack");
+            }}
+            aria-label="Orientação do quadro"
+          >
+            <ToggleButton value="horizontal" aria-label="Horizontal">
+              <ViewColumnOutlinedIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton value="vertical" aria-label="Vertical">
+              <ViewStreamOutlinedIcon fontSize="small" />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        }
       />
-      <TextField
-        label="Buscar"
-        value={q}
-        onChange={(event) => setQuery(event.target.value)}
-        fullWidth
-        sx={{ mb: 2 }}
-      />
-      <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", gap: 1 }}>
-        <Chip label="Tudo" color={!kind ? "primary" : "default"} onClick={() => setKind("")} />
-        {kinds.map((item) => (
-          <Chip
-            key={item}
-            label={taskKindLabels[item]}
-            color={kind === item ? "primary" : "default"}
-            onClick={() => setKind(item)}
-          />
-        ))}
-      </Stack>
-      <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: "wrap", gap: 1 }}>
-        <Chip label="Todos os status" color={!status ? "primary" : "default"} onClick={() => setStatus("")} />
-        {statuses.map((item) => (
-          <Chip
-            key={item}
-            label={taskStatusLabels[item]}
-            color={status === item ? "primary" : "default"}
-            onClick={() => setStatus(item)}
-          />
-        ))}
-      </Stack>
+      <Box component="form" onSubmit={handleSubmit} sx={{ mb: 2 }}>
+        <TextField
+          placeholder="O que precisa ser feito?"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleKeyDown}
+          fullWidth
+          autoComplete="off"
+          InputProps={{
+            endAdornment: (
+              <IconButton type="submit" aria-label="Enviar tarefa" disabled={saving || !draft.trim()}>
+                <SendIcon />
+              </IconButton>
+            ),
+          }}
+        />
+      </Box>
+      <FilterToolbar>
+        <TextField
+          label="Buscar"
+          value={q}
+          onChange={(event) => setQuery(event.target.value)}
+          fullWidth
+          size="small"
+        />
+        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, flexShrink: 0 }}>
+          <Chip label="Tudo" color={!kind ? "primary" : "default"} onClick={() => setKind("")} />
+          {kinds.map((item) => (
+            <Chip
+              key={item}
+              label={taskKindLabels[item]}
+              color={kind === item ? "primary" : "default"}
+              onClick={() => setKind(item)}
+            />
+          ))}
+        </Stack>
+      </FilterToolbar>
       <PageState
         loading={loading}
         error={error}
         empty={items.length === 0}
-        emptyTitle="Nenhuma tarefa ou ideia por aqui."
-        emptyAction="Adicionar"
+        emptyTitle="Nada no quadro ainda. Digite acima e pressione Enter."
         onRetry={() => void load()}
-        onEmptyAction={openCreate}
       >
-        <StaggeredList variant={layout}>
-          {items.map((item) => (
-            <ItemCard
-              key={item.id}
-              title={item.title}
-              notes={item.notes}
-              onEdit={() => openEdit(item)}
-              onDelete={() => void remove(item.id)}
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: orientation === "horizontal" ? { xs: "1fr", md: "1fr 1fr 1fr" } : "1fr",
+          }}
+        >
+          {columns.map((column) => (
+            <Paper
+              key={column}
+              variant="outlined"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const id = event.dataTransfer.getData("text/task-id");
+                if (id) {
+                  void update(id, { status: column });
+                }
+              }}
+              sx={{ p: 1.5, bgcolor: "rgba(255,250,243,0.55)", minHeight: 160 }}
             >
-              <StatusChip label={taskKindLabels[item.kind]} />
-              <StatusChip label={taskStatusLabels[item.status]} tone={taskStatusTone(item.status)} />
-            </ItemCard>
+              <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+                {taskStatusLabels[column]}
+              </Typography>
+              <Stack spacing={1.25}>
+                {items
+                  .filter((item) => item.status === column)
+                  .map((item) => (
+                    <TaskKanbanCard
+                      key={item.id}
+                      item={item}
+                      onKind={(next) => void update(item.id, { kind: next })}
+                      onDelete={() => void remove(item.id)}
+                    />
+                  ))}
+              </Stack>
+            </Paper>
           ))}
-        </StaggeredList>
+        </Box>
       </PageState>
-      <FormDialog
-        open={open}
-        title={editing ? "Editar" : "Nova tarefa ou ideia"}
-        saving={saving}
-        onClose={() => setOpen(false)}
-        onSubmit={(event) => void handleSubmit(event)}
-      >
-        <TextField
-          label="Título"
-          value={form.title}
-          onChange={(event) => setForm({ ...form, title: event.target.value })}
-          required
-          fullWidth
-          sx={{ mt: 1 }}
-        />
-        <TextField
-          select
-          label="Tipo"
-          value={form.kind}
-          onChange={(event) => setForm({ ...form, kind: event.target.value as TaskKind })}
-          fullWidth
-        >
-          {kinds.map((item) => (
-            <MenuItem key={item} value={item}>
-              {taskKindLabels[item]}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label="Status"
-          value={form.status}
-          onChange={(event) => setForm({ ...form, status: event.target.value as TaskStatus })}
-          fullWidth
-        >
-          {statuses.map((item) => (
-            <MenuItem key={item} value={item}>
-              {taskStatusLabels[item]}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="Notas"
-          value={form.notes}
-          onChange={(event) => setForm({ ...form, notes: event.target.value })}
-          multiline
-          minRows={2}
-          fullWidth
-        />
-      </FormDialog>
     </>
+  );
+}
+
+function TaskKanbanCard({
+  item,
+  onKind,
+  onDelete,
+}: {
+  item: Task;
+  onKind: (kind: TaskKind) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <Paper
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData("text/task-id", item.id);
+        event.dataTransfer.effectAllowed = "move";
+      }}
+      sx={{ p: 1.25, cursor: "grab" }}
+    >
+      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+        <Typography variant="subtitle1" sx={{ flex: 1, lineHeight: 1.3 }}>
+          {item.title}
+        </Typography>
+        <IconButton aria-label="Excluir" onClick={onDelete} size="small">
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Box>
+      <Stack direction="row" spacing={0.75} sx={{ mt: 1, flexWrap: "wrap", gap: 0.75 }}>
+        {kinds.map((entry) => (
+          <Chip
+            key={entry}
+            size="small"
+            label={taskKindLabels[entry]}
+            color={item.kind === entry ? "primary" : "default"}
+            onClick={() => onKind(entry)}
+          />
+        ))}
+      </Stack>
+    </Paper>
   );
 }

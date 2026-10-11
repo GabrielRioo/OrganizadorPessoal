@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from "react";
-import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
-import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import { FilterToolbar } from "../../components/FilterToolbar";
 import { FormDialog } from "../../components/FormDialog";
 import { ItemCard } from "../../components/ItemCard";
 import { ListLayoutToggle } from "../../components/ListLayoutToggle";
@@ -104,62 +103,60 @@ export function ProjectsPage() {
         onAction={openCreate}
         extra={<ListLayoutToggle value={layout} onChange={setLayout} />}
       />
-      <TextField
-        label="Buscar"
-        value={filters.q ?? ""}
-        onChange={(event) => setQuery(event.target.value)}
-        fullWidth
-        sx={{ mb: 2 }}
-      />
-      <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}>
-        <Chip
-          label="Todos"
-          color={!filters.status ? "primary" : "default"}
-          onClick={() => setStatus("")}
+      <FilterToolbar>
+        <TextField
+          label="Buscar"
+          value={filters.q ?? ""}
+          onChange={(event) => setQuery(event.target.value)}
+          fullWidth
+          size="small"
         />
-        {statuses.map((item) => (
-          <Chip
-            key={item}
-            label={projectStatusLabels[item]}
-            color={filters.status === item ? "primary" : "default"}
-            onClick={() => setStatus(item)}
-          />
-        ))}
-      </Stack>
-      <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}>
-        <Chip
-          label="Publicação: todas"
-          color={filters.published === "" || filters.published === undefined ? "primary" : "default"}
-          onClick={() => setPublished("")}
-        />
-        <Chip
-          label="Publicado"
-          color={filters.published === true ? "primary" : "default"}
-          onClick={() => setPublished(true)}
-        />
-        <Chip
-          label="Não publicado"
-          color={filters.published === false ? "primary" : "default"}
-          onClick={() => setPublished(false)}
-        />
-      </Stack>
-      <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: "wrap", gap: 1 }}>
-        <Chip
-          label="Monetização: todas"
-          color={filters.monetize === "" || filters.monetize === undefined ? "primary" : "default"}
-          onClick={() => setMonetize("")}
-        />
-        <Chip
-          label="SaaS"
-          color={filters.monetize === true ? "primary" : "default"}
-          onClick={() => setMonetize(true)}
-        />
-        <Chip
-          label="Sem SaaS"
-          color={filters.monetize === false ? "primary" : "default"}
-          onClick={() => setMonetize(false)}
-        />
-      </Stack>
+        <TextField
+          select
+          label="Status"
+          value={filters.status || "all"}
+          onChange={(event) => setStatus(event.target.value === "all" ? "" : (event.target.value as ProjectStatus))}
+          size="small"
+          sx={{ minWidth: { md: 180 } }}
+        >
+          <MenuItem value="all">Todos</MenuItem>
+          {statuses.map((item) => (
+            <MenuItem key={item} value={item}>
+              {projectStatusLabels[item]}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Publicação"
+          value={filters.published === true ? "yes" : filters.published === false ? "no" : "all"}
+          onChange={(event) => {
+            const value = event.target.value;
+            setPublished(value === "all" ? "" : value === "yes");
+          }}
+          size="small"
+          sx={{ minWidth: { md: 180 } }}
+        >
+          <MenuItem value="all">Todas</MenuItem>
+          <MenuItem value="yes">Publicado</MenuItem>
+          <MenuItem value="no">Não publicado</MenuItem>
+        </TextField>
+        <TextField
+          select
+          label="Monetização"
+          value={filters.monetize === true ? "yes" : filters.monetize === false ? "no" : "all"}
+          onChange={(event) => {
+            const value = event.target.value;
+            setMonetize(value === "all" ? "" : value === "yes");
+          }}
+          size="small"
+          sx={{ minWidth: { md: 180 } }}
+        >
+          <MenuItem value="all">Todas</MenuItem>
+          <MenuItem value="yes">SaaS</MenuItem>
+          <MenuItem value="no">Sem SaaS</MenuItem>
+        </TextField>
+      </FilterToolbar>
       <PageState
         loading={loading}
         error={error}

@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent } from "react";
-import { GameCoverPreview } from "./components/GameCoverPreview";
+import { CoverPreview } from "../../components/CoverPreview";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import MenuItem from "@mui/material/MenuItem";
@@ -249,7 +249,7 @@ export function GamesPage() {
         saving={saving}
         onClose={() => setOpen(false)}
         onSubmit={(event) => void handleSubmit(event)}
-        aside={<GameCoverPreview title={form.title} coverUrl={form.coverUrl} />}
+        aside={<CoverPreview title={form.title} coverUrl={form.coverUrl} />}
       >
         <CatalogSuggestField
           label="Título"

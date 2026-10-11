@@ -1,7 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -11,17 +10,17 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { FormDialog } from "../../components/FormDialog";
-import { ItemCard } from "../../components/ItemCard";
 import { ListLayoutToggle } from "../../components/ListLayoutToggle";
+import { BuyProductCard } from "./components/BuyProductCard";
+import { ImageDropField } from "./components/ImageDropField";
 import { PageHeader } from "../../components/PageHeader";
 import { PageState } from "../../components/PageState";
 import { StaggeredList } from "../../components/StaggeredList";
-import { StatusChip } from "../../components/StatusChip";
 import { useListLayout } from "../../hooks/useListLayout";
+import { buyService } from "../../services/buyService";
 import type { BuyCurrency, BuyItem, BuyPriority, BuyStatus } from "../../types/models";
 import { buyCurrencyLabels, buyPriorityLabels, buyStatusLabels } from "../../utils/labels";
-import { formatMoney, moneyInputValue, parseMoneyInput } from "../../utils/money";
-import { buyPriorityTone, buyStatusTone } from "../../utils/statusVisuals";
+import { moneyInputValue, parseMoneyInput } from "../../utils/money";
 import { useBuyItems } from "./hooks/useBuyItems";
 
 const statuses: BuyStatus[] = ["WANT", "RESEARCHING", "WAITING_DEAL", "BOUGHT", "DROPPED"];
@@ -46,24 +45,6 @@ function createEmptyForm() {
   };
 }
 
-function hostnameOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
-function isOnTarget(item: BuyItem): boolean {
-  return (
-    item.currentPrice != null &&
-    item.targetPrice != null &&
-    item.currentPrice <= item.targetPrice &&
-    item.status !== "BOUGHT" &&
-    item.status !== "DROPPED"
-  );
-}
-
 export function BuyPage() {
   const {
     items,
@@ -84,15 +65,30 @@ export function BuyPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<BuyItem | null>(null);
   const [form, setForm] = useState(createEmptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!imageFile) {
+      return;
+    }
+    const url = URL.createObjectURL(imageFile);
+    setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
 
   function openCreate() {
     setEditing(null);
     setForm(createEmptyForm());
+    setImageFile(null);
+    setImagePreview(null);
     setOpen(true);
   }
 
   function openEdit(item: BuyItem) {
     setEditing(item);
+    setImageFile(null);
+    setImagePreview(item.hasImage ? buyService.imageUrl(item.id) : null);
     setForm({
       name: item.name,
       description: item.description ?? "",
@@ -143,9 +139,9 @@ export function BuyPage() {
     };
     try {
       if (editing) {
-        await update(editing.id, payload);
+        await update(editing.id, payload, imageFile);
       } else {
-        await create(payload);
+        await create(payload, imageFile);
       }
       setOpen(false);
     } finally {
@@ -212,54 +208,14 @@ export function BuyPage() {
         onRetry={() => void load()}
         onEmptyAction={openCreate}
       >
-        <StaggeredList variant={layout}>
+        <StaggeredList variant="cards">
           {items.map((item) => (
-            <ItemCard
+            <BuyProductCard
               key={item.id}
-              title={item.name}
-              subtitle={[
-                item.category,
-                item.quantity > 1 ? `${item.quantity} un.` : null,
-                item.currentPrice != null
-                  ? formatMoney(item.currentPrice, item.currency)
-                  : "Preço não informado",
-                item.targetPrice != null ? `meta ${formatMoney(item.targetPrice, item.currency)}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-              notes={[item.description, item.notes].filter(Boolean).join(" · ")}
-              extra={
-                item.links.length > 0 ? (
-                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
-                    {item.links.map((link) => (
-                      <Chip
-                        key={`${link.url}-${link.label ?? ""}`}
-                        size="small"
-                        clickable
-                        component="a"
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        icon={<OpenInNewIcon />}
-                        label={link.label || hostnameOf(link.url)}
-                        variant="outlined"
-                      />
-                    ))}
-                  </Stack>
-                ) : (
-                  "\u00a0"
-                )
-              }
+              item={item}
               onEdit={() => openEdit(item)}
               onDelete={() => void remove(item.id)}
-            >
-              <StatusChip label={buyStatusLabels[item.status]} tone={buyStatusTone(item.status)} />
-              <StatusChip
-                label={`Prioridade ${buyPriorityLabels[item.priority].toLowerCase()}`}
-                tone={buyPriorityTone(item.priority)}
-              />
-              {isOnTarget(item) ? <StatusChip label="No preço-alvo" tone="success" /> : null}
-            </ItemCard>
+            />
           ))}
         </StaggeredList>
       </PageState>
@@ -272,6 +228,7 @@ export function BuyPage() {
         onClose={() => setOpen(false)}
         onSubmit={(event) => void handleSubmit(event)}
       >
+        <ImageDropField previewUrl={imagePreview} onFile={setImageFile} />
         <TextField
           label="Nome"
           value={form.name}

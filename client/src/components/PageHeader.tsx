@@ -9,8 +9,8 @@ import Typography from "@mui/material/Typography";
 type PageHeaderProps = {
   title: string;
   subtitle?: string;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
   extra?: ReactNode;
 };
 
@@ -48,9 +48,11 @@ export function PageHeader({ title, subtitle, actionLabel, onAction, extra }: Pa
         </Box>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           {extra}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={onAction}>
-            {actionLabel}
-          </Button>
+          {actionLabel && onAction ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onAction}>
+              {actionLabel}
+            </Button>
+          ) : null}
         </Stack>
       </Box>
     </Fade>

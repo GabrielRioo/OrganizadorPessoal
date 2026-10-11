@@ -79,9 +79,11 @@ enum MediaStatus {
 }
 
 enum MediaRating {
+  GREAT
   GOOD
   OKAY
   BAD
+  TERRIBLE
 }
 
 model Media {
@@ -235,6 +237,8 @@ model BuyItem {
   status       BuyStatus   @default(WANT)
   links        Json        @default("[]")
   notes        String?
+  imageBytes   Bytes?
+  imageMime    String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 

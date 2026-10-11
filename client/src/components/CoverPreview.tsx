@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
-type GameCoverPreviewProps = {
+type CoverPreviewProps = {
   title: string;
   coverUrl: string | null;
+  emptyLabel?: string;
 };
 
-export function GameCoverPreview({ title, coverUrl }: GameCoverPreviewProps) {
+export function CoverPreview({ title, coverUrl, emptyLabel }: CoverPreviewProps) {
   const [broken, setBroken] = useState(false);
   const showCover = Boolean(coverUrl) && !broken;
 
@@ -33,7 +34,7 @@ export function GameCoverPreview({ title, coverUrl }: GameCoverPreviewProps) {
         <Box
           component="img"
           src={coverUrl ?? undefined}
-          alt={title ? `Capa de ${title}` : "Capa do jogo"}
+          alt={title ? `Capa de ${title}` : "Capa"}
           referrerPolicy="no-referrer"
           onError={() => setBroken(true)}
           sx={{
@@ -57,7 +58,7 @@ export function GameCoverPreview({ title, coverUrl }: GameCoverPreviewProps) {
           }}
         >
           <Typography variant="caption" color="#c7d5e0" textAlign="center">
-            {title.trim() ? title : "Selecione um título para ver a capa"}
+            {title.trim() ? title : emptyLabel ?? "Selecione um título para ver a capa"}
           </Typography>
         </Box>
       )}

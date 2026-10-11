@@ -1,0 +1,5 @@
+ALTER TYPE "MediaRating" ADD VALUE 'GREAT';
+ALTER TYPE "MediaRating" ADD VALUE 'TERRIBLE';
+
+ALTER TABLE "BuyItem" ADD COLUMN "imageBytes" BYTEA;
+ALTER TABLE "BuyItem" ADD COLUMN "imageMime" TEXT;

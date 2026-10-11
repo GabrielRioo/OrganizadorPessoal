@@ -6,6 +6,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import { CatalogSuggestField } from "../../components/CatalogSuggestField";
+import { CoverPreview } from "../../components/CoverPreview";
 import { FormDialog } from "../../components/FormDialog";
 import { CoverPoster } from "../../components/CoverPoster";
 import { ListLayoutToggle } from "../../components/ListLayoutToggle";
@@ -24,7 +25,7 @@ type MediaSuggestion = MediaCatalogHit & { id: string; subtitle: string };
 
 const kinds: Array<MediaKind | ""> = ["", "MOVIE", "SERIES", "ANIME"];
 const statuses: MediaStatus[] = ["WATCHLIST", "WATCHING", "PAUSED", "WAITING", "WATCHED"];
-const ratings: Array<MediaRating | ""> = ["", "GOOD", "OKAY", "BAD"];
+const ratings: Array<MediaRating | ""> = ["", "GREAT", "GOOD", "OKAY", "BAD", "TERRIBLE"];
 
 const emptyForm = {
   title: "",
@@ -195,6 +196,7 @@ export function MediaPage() {
         saving={saving}
         onClose={() => setOpen(false)}
         onSubmit={(event) => void handleSubmit(event)}
+        aside={<CoverPreview title={form.title} coverUrl={form.coverUrl} />}
       >
         <TextField
           select
@@ -213,7 +215,13 @@ export function MediaPage() {
         <CatalogSuggestField
           label="Título"
           value={form.title}
-          onInputChange={(title) => setForm((current) => ({ ...current, title }))}
+          onInputChange={(title) =>
+            setForm((current) => ({
+              ...current,
+              title,
+              coverUrl: title === current.title ? current.coverUrl : null,
+            }))
+          }
           search={searchMedia}
           onSelect={(option) =>
             setForm((current) => ({

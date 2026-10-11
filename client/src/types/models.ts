@@ -1,7 +1,7 @@
 export type GameStatus = "WISHLIST" | "BACKLOG" | "PLAYING" | "PAUSED" | "PLAYED" | "ABANDONED" | "SHELVED" | "ONLINE" | "CASUAL" | "EVENTUAL";
 export type MediaKind = "MOVIE" | "SERIES" | "ANIME";
 export type MediaStatus = "WATCHLIST" | "WATCHING" | "PAUSED" | "WAITING" | "WATCHED";
-export type MediaRating = "GOOD" | "OKAY" | "BAD";
+export type MediaRating = "GREAT" | "GOOD" | "OKAY" | "BAD" | "TERRIBLE";
 export type TravelStatus = "VISITED" | "PLANNING";
 export type ProjectStatus = "PLANNED" | "IN_PROGRESS" | "PAUSED" | "DONE";
 export type TaskKind = "TASK" | "IDEA";
@@ -101,6 +101,7 @@ export type BuyItem = {
   status: BuyStatus;
   links: BuyLink[];
   notes: string | null;
+  hasImage: boolean;
   createdAt: string;
   updatedAt: string;
 };

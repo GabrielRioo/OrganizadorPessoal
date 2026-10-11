@@ -53,7 +53,7 @@ export const mediaCreateSchema = z
     status: z.enum(["WATCHLIST", "WATCHING", "PAUSED", "WAITING", "WATCHED"]),
     currentSeason: z.number().int().min(0).max(999).optional().nullable(),
     currentEpisode: z.number().int().min(0).max(9999).optional().nullable(),
-    rating: z.enum(["GOOD", "OKAY", "BAD"]).optional().nullable(),
+    rating: z.enum(["GREAT", "GOOD", "OKAY", "BAD", "TERRIBLE"]).optional().nullable(),
     genre: z.string().trim().max(80).optional().nullable(),
     watchedOn: z.string().trim().max(80).optional().nullable(),
     notes,

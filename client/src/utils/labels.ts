@@ -3,7 +3,7 @@ export const gameStatusLabels: Record<string, string> = {
   BACKLOG: "Na fila",
   PLAYING: "Jogando",
   PAUSED: "Pausado",
-  PLAYED: "Jogado",
+  PLAYED: "Zerado",
   ABANDONED: "Abandonado",
   SHELVED: "Arquivado",
   ONLINE: "Online",
@@ -26,9 +26,11 @@ export const mediaStatusLabels: Record<string, string> = {
 };
 
 export const mediaRatingLabels: Record<string, string> = {
+  GREAT: "Muito bom",
   GOOD: "Bom",
-  OKAY: "Ok",
+  OKAY: "Mediano",
   BAD: "Ruim",
+  TERRIBLE: "Péssimo",
 };
 
 export const travelStatusLabels: Record<string, string> = {

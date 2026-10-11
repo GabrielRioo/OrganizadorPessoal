@@ -32,13 +32,19 @@ export function useBuyItems() {
     return () => window.clearTimeout(timer);
   }, [load]);
 
-  async function create(payload: BuyItemPayload) {
-    await buyService.create(payload);
+  async function create(payload: BuyItemPayload, image?: Blob | null) {
+    const item = await buyService.create(payload);
+    if (image) {
+      await buyService.uploadImage(item.id, image);
+    }
     await load();
   }
 
-  async function update(id: string, payload: Partial<BuyItemPayload>) {
+  async function update(id: string, payload: Partial<BuyItemPayload>, image?: Blob | null) {
     await buyService.update(id, payload);
+    if (image) {
+      await buyService.uploadImage(id, image);
+    }
     await load();
   }
 

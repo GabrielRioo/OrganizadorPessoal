@@ -43,4 +43,6 @@ export const buyService = {
   update: (id: string, payload: Partial<BuyItemPayload>) =>
     api.patch<BuyItem>(`/api/buy-items/${id}`, payload),
   remove: (id: string) => api.delete(`/api/buy-items/${id}`),
+  uploadImage: (id: string, file: Blob) => api.putBinary<{ ok: boolean; hasImage: boolean }>(`/api/buy-items/${id}/image`, file),
+  imageUrl: (id: string) => `/api/buy-items/${id}/image`,
 };

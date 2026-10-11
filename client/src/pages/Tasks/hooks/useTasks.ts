@@ -30,18 +30,18 @@ export function useTasks() {
   }, [load]);
 
   async function create(payload: TaskPayload) {
-    await taskService.create(payload);
-    await load();
+    const item = await taskService.create(payload);
+    setItems((current) => [item, ...current]);
   }
 
   async function update(id: string, payload: Partial<TaskPayload>) {
-    await taskService.update(id, payload);
-    await load();
+    const item = await taskService.update(id, payload);
+    setItems((current) => current.map((entry) => (entry.id === id ? item : entry)));
   }
 
   async function remove(id: string) {
     await taskService.remove(id);
-    await load();
+    setItems((current) => current.filter((entry) => entry.id !== id));
   }
 
   return {

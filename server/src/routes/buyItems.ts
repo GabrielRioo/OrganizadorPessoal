@@ -1,7 +1,8 @@
-import { Router } from "express";
+import { Router, raw as rawBody } from "express";
 import type { BuyPriority, BuyStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
+import { detectImage } from "../lib/imageUpload.js";
 import { ownedBy, requireOwnedId } from "../lib/owned.js";
 import { buyItemCreateSchema, buyItemUpdateSchema } from "../validation/schemas.js";
 
@@ -40,6 +41,7 @@ function serialize(item: {
   status: BuyStatus;
   links: Prisma.JsonValue;
   notes: string | null;
+  imageMime: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -56,6 +58,7 @@ function serialize(item: {
     status: item.status,
     links: parseLinks(item.links),
     notes: item.notes,
+    hasImage: Boolean(item.imageMime),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -107,6 +110,7 @@ buyItemsRouter.get("/", async (req, res, next) => {
 
     const items = await prisma.buyItem.findMany({
       where,
+      omit: { imageBytes: true },
       orderBy: { updatedAt: "desc" },
     });
     items.sort((left, right) => {
@@ -165,6 +169,54 @@ buyItemsRouter.patch("/:id", async (req, res, next) => {
       },
     });
     res.json(serialize(item));
+  } catch (error) {
+    next(error);
+  }
+});
+
+buyItemsRouter.put(
+  "/:id/image",
+  rawBody({ type: () => true, limit: "2mb" }),
+  async (req, res, next) => {
+    try {
+      const id = await requireOwnedId(req, res, (rowId, userId) =>
+        prisma.buyItem.findFirst({ where: { id: rowId, userId }, select: { id: true } }),
+      );
+      if (!id) {
+        return;
+      }
+      const buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from([]);
+      const detected = detectImage(buffer);
+      if (!detected) {
+        res.status(400).json({ error: "Invalid image" });
+        return;
+      }
+      await prisma.buyItem.update({
+        where: { id },
+        data: { imageBytes: new Uint8Array(buffer), imageMime: detected.mime },
+      });
+      res.json({ ok: true, hasImage: true });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+buyItemsRouter.get("/:id/image", async (req, res, next) => {
+  try {
+    const userId = ownedBy(req).userId;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const item = await prisma.buyItem.findFirst({
+      where: { id, userId },
+      select: { imageBytes: true, imageMime: true },
+    });
+    if (!item?.imageBytes || !item.imageMime) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.setHeader("Content-Type", item.imageMime);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    res.send(Buffer.from(item.imageBytes));
   } catch (error) {
     next(error);
   }
