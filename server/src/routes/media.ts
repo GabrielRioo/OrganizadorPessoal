@@ -3,6 +3,7 @@ import type { MediaKind, MediaStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryString } from "../lib/http.js";
 import { ownedBy, requireOwnedId } from "../lib/owned.js";
+import { paginatedResponse, parsePageParams } from "../lib/pagination.js";
 import { enrichMediaCovers } from "../services/coverEnrichment.js";
 import { mediaCreateSchema, mediaUpdateSchema } from "../validation/schemas.js";
 
@@ -28,6 +29,7 @@ mediaRouter.get("/", async (req, res, next) => {
     const status = statusParam && statuses.has(statusParam as MediaStatus)
       ? (statusParam as MediaStatus)
       : undefined;
+    const { page, pageSize, skip } = parsePageParams(req);
 
     const where: Prisma.MediaWhereInput = {
       ...ownedBy(req),
@@ -36,11 +38,30 @@ mediaRouter.get("/", async (req, res, next) => {
       ...(status ? { status } : {}),
     };
 
-    const items = await prisma.media.findMany({
-      where,
-      orderBy: { updatedAt: "desc" },
-    });
-    res.json(await enrichMediaCovers(items));
+    const countWhere: Prisma.MediaWhereInput = status
+      ? where
+      : { ...where, status: { not: "WATCHLIST" } };
+
+    const [total, count, items] = await Promise.all([
+      prisma.media.count({ where }),
+      prisma.media.count({ where: countWhere }),
+      prisma.media.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        skip,
+        take: pageSize,
+      }),
+    ]);
+
+    res.json(
+      paginatedResponse({
+        items: await enrichMediaCovers(items),
+        total,
+        page,
+        pageSize,
+        count,
+      }),
+    );
   } catch (error) {
     next(error);
   }

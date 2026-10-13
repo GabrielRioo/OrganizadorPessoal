@@ -5,11 +5,13 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { CatalogSuggestField } from "../../components/CatalogSuggestField";
 import { CoverPreview } from "../../components/CoverPreview";
 import { FormDialog } from "../../components/FormDialog";
 import { CoverPoster } from "../../components/CoverPoster";
 import { ListLayoutToggle } from "../../components/ListLayoutToggle";
+import { ListPagination } from "../../components/ListPagination";
 import { PageHeader } from "../../components/PageHeader";
 import { PageState } from "../../components/PageState";
 import { StaggeredList } from "../../components/StaggeredList";
@@ -42,13 +44,32 @@ const emptyForm = {
 };
 
 export function MediaPage() {
-  const { items, loading, error, filters, load, create, update, remove, setQuery, setKind, setStatus } =
-    useMedia();
+  const {
+    items,
+    loading,
+    error,
+    filters,
+    count,
+    page,
+    pageCount,
+    load,
+    create,
+    update,
+    remove,
+    setQuery,
+    setKind,
+    setStatus,
+    setPage,
+  } = useMedia();
   const { layout, setLayout } = useListLayout("media", "cards");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  const countLabel = filters.status
+    ? `${count} ${count === 1 ? "título" : "títulos"} · ${mediaStatusLabels[filters.status]}`
+    : `${count} ${count === 1 ? "título" : "títulos"}`;
 
   function openCreate() {
     setEditing(null);
@@ -126,6 +147,9 @@ export function MediaPage() {
         onAction={openCreate}
         extra={<ListLayoutToggle value={layout} onChange={setLayout} />}
       />
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2, mt: -1.5 }}>
+        {loading ? "Contando títulos…" : countLabel}
+      </Typography>
       <Tabs
         value={filters.kind ?? ""}
         onChange={(_event, value: MediaKind | "") => setKind(value)}
@@ -188,6 +212,7 @@ export function MediaPage() {
             </CoverPoster>
           ))}
         </StaggeredList>
+        <ListPagination page={page} pageCount={pageCount} onChange={setPage} />
       </PageState>
 
       <FormDialog

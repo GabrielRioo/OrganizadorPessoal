@@ -19,6 +19,24 @@ export type GameFilters = {
   platform?: string;
   sort?: GameSort;
   invert?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export type GameQueuePreview = {
+  id: string;
+  title: string;
+  queuePosition: number | null;
+};
+
+export type GameListResponse = {
+  items: Game[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  count: number;
+  queuePreview: GameQueuePreview[];
 };
 
 function gamesQuery(filters: GameFilters): string {
@@ -28,12 +46,14 @@ function gamesQuery(filters: GameFilters): string {
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.sort && filters.sort !== "queue") params.set("sort", filters.sort);
   if (filters.invert) params.set("invert", "true");
+  if (filters.page && filters.page > 1) params.set("page", String(filters.page));
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
   const query = params.toString();
   return query ? `/api/games?${query}` : "/api/games";
 }
 
 export const gameService = {
-  list: (filters: GameFilters = {}) => api.get<Game[]>(gamesQuery(filters)),
+  list: (filters: GameFilters = {}) => api.get<GameListResponse>(gamesQuery(filters)),
   platforms: () => api.get<string[]>("/api/games/platforms"),
   create: (payload: GamePayload) => api.post<Game>("/api/games", payload),
   update: (id: string, payload: Partial<GamePayload>) =>

@@ -3,6 +3,7 @@ import type { GameStatus, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { parseBody, queryBool, queryString } from "../lib/http.js";
 import { ownedBy, requireOwnedId } from "../lib/owned.js";
+import { paginatedResponse, parsePageParams } from "../lib/pagination.js";
 import { enrichGameCovers } from "../services/coverEnrichment.js";
 import { gameCreateSchema, gameUpdateSchema } from "../validation/schemas.js";
 
@@ -77,6 +78,7 @@ gamesRouter.get("/", async (req, res, next) => {
     const sortParam = queryString(req, "sort");
     const sort: GameSort = sortParam && sortParam in gameSorts ? (sortParam as GameSort) : "queue";
     const invert = queryBool(req, "invert") === true;
+    const { page, pageSize, skip } = parsePageParams(req);
 
     const where: Prisma.GameWhereInput = {
       ...ownedBy(req),
@@ -85,11 +87,44 @@ gamesRouter.get("/", async (req, res, next) => {
       ...(status ? { status } : {}),
     };
 
-    const games = await prisma.game.findMany({
-      where,
-      orderBy: applySortDirection([...gameSorts[sort]], invert),
+    const countWhere: Prisma.GameWhereInput = status
+      ? where
+      : { ...where, status: { not: "WISHLIST" } };
+
+    const orderBy = applySortDirection([...gameSorts[sort]], invert);
+    const [total, count, games, queuePreview] = await Promise.all([
+      prisma.game.count({ where }),
+      prisma.game.count({ where: countWhere }),
+      prisma.game.findMany({
+        where,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      !status && !q
+        ? prisma.game.findMany({
+            where: {
+              ...ownedBy(req),
+              ...(platform ? { platform: { equals: platform, mode: "insensitive" } } : {}),
+              queuePosition: { not: null },
+            },
+            orderBy: { queuePosition: "asc" },
+            take: 12,
+            select: { id: true, title: true, queuePosition: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    res.json({
+      ...paginatedResponse({
+        items: await enrichGameCovers(games),
+        total,
+        page,
+        pageSize,
+        count,
+      }),
+      queuePreview,
     });
-    res.json(await enrichGameCovers(games));
   } catch (error) {
     next(error);
   }

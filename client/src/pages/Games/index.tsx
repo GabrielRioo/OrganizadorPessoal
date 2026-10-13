@@ -10,6 +10,7 @@ import { CatalogSuggestField } from "../../components/CatalogSuggestField";
 import { FormDialog } from "../../components/FormDialog";
 import { CoverPoster } from "../../components/CoverPoster";
 import { ListLayoutToggle } from "../../components/ListLayoutToggle";
+import { ListPagination } from "../../components/ListPagination";
 import { PageHeader } from "../../components/PageHeader";
 import { PageState } from "../../components/PageState";
 import { StaggeredList } from "../../components/StaggeredList";
@@ -47,10 +48,14 @@ const emptyForm = {
 export function GamesPage() {
   const {
     items,
+    queuePreview,
     loading,
     error,
     filters,
     platforms,
+    count,
+    page,
+    pageCount,
     load,
     create,
     update,
@@ -60,6 +65,7 @@ export function GamesPage() {
     setPlatform,
     setSort,
     setInvert,
+    setPage,
   } = useGames();
   const { layout, setLayout } = useListLayout("games", "cards");
   const [open, setOpen] = useState(false);
@@ -125,7 +131,9 @@ export function GamesPage() {
     };
   }, []);
 
-  const nextUp = items.filter((game) => game.queuePosition != null);
+  const countLabel = filters.status
+    ? `${count} ${count === 1 ? "jogo" : "jogos"} · ${gameStatusLabels[filters.status]}`
+    : `${count} ${count === 1 ? "jogo" : "jogos"}`;
 
   return (
     <>
@@ -136,6 +144,9 @@ export function GamesPage() {
         onAction={openCreate}
         extra={<ListLayoutToggle value={layout} onChange={setLayout} />}
       />
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2, mt: -1.5 }}>
+        {loading ? "Contando jogos…" : countLabel}
+      </Typography>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 2 }}>
         <TextField
           label="Buscar pelo nome"
@@ -197,13 +208,13 @@ export function GamesPage() {
         ))}
       </Stack>
 
-      {nextUp.length > 0 && !filters.status && !filters.q ? (
+      {queuePreview.length > 0 && !filters.status && !filters.q ? (
         <Box sx={{ mb: 3, animation: "fadeUp 0.4s ease both" }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
             Próximos a jogar
           </Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
-            {nextUp.map((game) => (
+            {queuePreview.map((game) => (
               <Chip key={game.id} label={`${game.queuePosition}. ${game.title}`} />
             ))}
           </Stack>
@@ -241,6 +252,7 @@ export function GamesPage() {
             </CoverPoster>
           ))}
         </StaggeredList>
+        <ListPagination page={page} pageCount={pageCount} onChange={setPage} />
       </PageState>
 
       <FormDialog

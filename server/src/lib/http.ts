@@ -29,3 +29,12 @@ export function queryBool(req: Request, key: string): boolean | undefined {
   }
   return undefined;
 }
+
+export function queryInt(req: Request, key: string): number | undefined {
+  const value = queryString(req, key);
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : undefined;
+}
